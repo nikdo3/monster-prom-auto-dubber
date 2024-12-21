@@ -62,18 +62,39 @@ def read_out_loud(text):
     engine.say(text)
     engine.runAndWait()
 
+def learning_mode(im):
+    # Zobrazení obrázku a dotaz na jméno
+    cv2.imshow("Unknown Face", im)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    name = input("Enter the name for the unknown face: ")
+    
+    # Uložení obrázku s novým jménem
+    known_images_dir = "known_images"
+    img_path = os.path.join(known_images_dir, f"{name}.jpg")
+    cv2.imwrite(img_path, im)
+    
+    # Aktualizace známých obrázků a histogramů
+    hist = cv2.calcHist([im], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
+    hist = cv2.normalize(hist, hist).flatten()
+    known_histograms.append(hist)
+    known_names.append(name)
+
 if __name__ == "__main__":
     # Načtení známých obrázků
     load_known_images()
 
-    # Definujte souřadnice oblasti, kterou chcete zachytit
-    x1, y1, x2, y2 = 340, 820, 1600, 1035
+    # Definujte souřadnice oblasti, kterou chcete zachytit pro text
+    x1_text, y1_text, x2_text, y2_text = 340, 820, 1600, 1035
 
     # Čtení textu z obrazovky
-    text = read_screen_text(x1, y1, x2, y2)
+    text = read_screen_text(x1_text, y1_text, x2_text, y2_text)
+
+    # Definujte souřadnice oblasti, kterou chcete zachytit pro hlavy
+    x1_head, y1_head, x2_head, y2_head = 100, 100, 500, 300
 
     # Snímek obrazovky z definované oblasti pro porovnání obrázků
-    im = np.array(ImageGrab.grab(bbox=(x1, y1, x2, y2)))
+    im = np.array(ImageGrab.grab(bbox=(x1_head, y1_head, x2_head, y2_head)))
 
     # Porovnání obrázků
     matched_name = compare_images(im)
@@ -84,3 +105,4 @@ if __name__ == "__main__":
         read_out_loud(f"{matched_name} says: {text}")
     else:
         print("No match found.")
+        learning_mode(im)
