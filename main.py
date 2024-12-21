@@ -25,8 +25,10 @@ def load_known_images():
 def preprocess_image(im):
     # Převod na stupně šedi
     gray = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2GRAY)
+    # Invertování obrazu
+    inverted = cv2.bitwise_not(gray)
     # Adaptivní prahování
-    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    binary = cv2.adaptiveThreshold(inverted, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     return binary
 
 def read_screen_text(x1, y1, x2, y2):
@@ -34,9 +36,16 @@ def read_screen_text(x1, y1, x2, y2):
     im = ImageGrab.grab(bbox=(x1, y1, x2, y2))
     # Předzpracování obrazu
     preprocessed_im = preprocess_image(im)
+    
+    """
+    # Zobrazení předzpracovaného obrazu
+    cv2.imshow("Preprocessed Image", preprocessed_im)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    """
+    
     # Čtení textu z obrazovky s whitelistem znaků
-    custom_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .'
-    text = pytesseract.image_to_string(preprocessed_im, config=custom_config)
+    text = pytesseract.image_to_string(preprocessed_im, lang='eng')
     text = text.replace('\n', ' ')
     print("Captured Text:", text)
     return text
@@ -51,7 +60,7 @@ def compare_images(im):
     min_distance = float('inf')
     for known_hist, name in zip(known_histograms, known_names):
         distance = cv2.compareHist(hist, known_hist, cv2.HISTCMP_BHATTACHARYYA)
-        if distance < min_distance:
+        if distance < min_distance and distance < 0.3:  # Přidání prahové hodnoty pro lepší rozpoznání
             min_distance = distance
             best_match = name
 
@@ -72,6 +81,13 @@ def learning_mode(im):
     # Uložení obrázku s novým jménem
     known_images_dir = "known_images"
     img_path = os.path.join(known_images_dir, f"{name}.jpg")
+    
+    # Pokud soubor již existuje, přidejte číslo k názvu souboru
+    counter = 1
+    while os.path.exists(img_path):
+        img_path = os.path.join(known_images_dir, f"{name}_{counter}.jpg")
+        counter += 1
+    
     cv2.imwrite(img_path, im)
     
     # Aktualizace známých obrázků a histogramů
@@ -85,13 +101,13 @@ if __name__ == "__main__":
     load_known_images()
 
     # Definujte souřadnice oblasti, kterou chcete zachytit pro text
-    x1_text, y1_text, x2_text, y2_text = 340, 820, 1600, 1035
+    x1_text, y1_text, x2_text, y2_text = 365, 820, 1600, 1035
 
     # Čtení textu z obrazovky
     text = read_screen_text(x1_text, y1_text, x2_text, y2_text)
 
     # Definujte souřadnice oblasti, kterou chcete zachytit pro hlavy
-    x1_head, y1_head, x2_head, y2_head = 100, 100, 500, 300
+    x1_head, y1_head, x2_head, y2_head = 190, 750, 365, 930
 
     # Snímek obrazovky z definované oblasti pro porovnání obrázků
     im = np.array(ImageGrab.grab(bbox=(x1_head, y1_head, x2_head, y2_head)))
@@ -101,8 +117,10 @@ if __name__ == "__main__":
 
     # Přiřazení jména ke čtenému textu
     if matched_name:
-        print(f"Detected {matched_name} with text: {text}")
-        read_out_loud(f"{matched_name} says: {text}")
+        # Odstranění čísel a podtržítek z názvu
+        matched_name_clean = ''.join([i for i in matched_name if not i.isdigit() and i != '_'])
+        print(f"Detected {matched_name_clean} with text: {text}")
+        read_out_loud(f"{matched_name_clean} says: {text}")
     else:
         print("No match found.")
         learning_mode(im)
