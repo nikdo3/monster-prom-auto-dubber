@@ -7,11 +7,12 @@ from elevenlabs import stream
 from elevenlabs.client import ElevenLabs
 from image_processing import known_histograms, known_names, preprocess_image
 from voice_settings import change_voice, get_voice
+import pyttsx3  # Přidání importu pro lokální TTS knihovnu
 
 with open("APIkeys.txt", "r") as f:
     api_key = f.read().strip()
 if not api_key:
-    raise ValueError("API key for ElevenLabs is not set.")
+    raise ValueError("API key pro ElevenLabs is not set.")
 client = ElevenLabs(api_key=api_key)
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
@@ -36,11 +37,17 @@ def read_out_loud(text, character):
     )
     stream(audio_stream)
 
+def read_out_loud_legacy(text, character):
+    """Přečte nahlas text pomocí lokální knihovny."""
+    engine = pyttsx3.init()
+    engine.say(text)
+    engine.runAndWait()
+
 def evaluate_voice_for_personality(description):
     """Vyhodnotí (pomocí LLM) vhodný hlas na základě popisu osobnosti."""
     # Pro ukázku vracíme platný voice_id
     # V reálné aplikaci by zde bylo volání LLM nebo jiná logika pro výběr hlasu
-    return "CwhRBWXzGAHq8TQ4Fs17"  # Platný voice_id
+    return "nPczCjzI2devNBz1zQrb"  # Platný voice_id
 
 def learning_mode(im):
     """Prompts user for name/personality a uloží novou postavu včetně hlasu."""

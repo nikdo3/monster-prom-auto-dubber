@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from PIL import ImageGrab
 from image_processing import load_known_images, compare_images
-from app_logic import read_screen_text, read_out_loud, learning_mode
+from app_logic import read_screen_text, read_out_loud, read_out_loud_legacy, learning_mode
 
 if __name__ == "__main__":
     load_known_images()
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     if matched_name:
         matched_name_clean = ''.join([i for i in matched_name if not i.isdigit() and i != '_'])
         print(f"Detected {matched_name_clean} with text: {text}")
-        read_out_loud(f"{matched_name_clean} says: {text}", matched_name_clean)
+        read_out_loud_legacy(f"{matched_name_clean} says: {text}", matched_name_clean)
     else:
         print("No match found.")
         learning_mode(im)
